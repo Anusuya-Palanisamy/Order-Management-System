@@ -1,0 +1,40 @@
+package com.order.handler;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.reactive.function.server.ServerResponse;
+
+import com.order.model.Order;
+import com.order.service.OrderService;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@Component
+public class OrderHandler {
+	
+	@Autowired
+	 OrderService orderService;
+	
+	
+
+	public Mono<ServerResponse> findByDataList(ServerRequest serverRequset){
+		Flux<Order> orderFlux=orderService.orderList();
+		return ServerResponse.ok().body(orderFlux, Order.class);
+	}
+
+	public Mono<ServerResponse> orderLiastData(ServerRequest serverRequset){
+		String date=serverRequset.pathVariable("date");
+		return orderService.orderListByDate(date)
+				.flatMap(order-> ServerResponse.ok().bodyValue(order))
+				.switchIfEmpty(ServerResponse.notFound().build());
+				
+	}
+	public Mono<ServerResponse> saveOrderList(ServerRequest serverRequset){
+		Mono<Order> orderFlux=serverRequset.bodyToMono(Order.class)
+				.flatMap(orderService::orderList);
+		return ServerResponse.status(HttpStatus.CREATED).body(orderFlux, Order.class);
+	}
+}

@@ -1,0 +1,202 @@
+package com.order.router;
+
+import static org.mockito.Mockito.times;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.reactive.server.EntityExchangeResult;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.order.model.Address;
+import com.order.model.InvoiceData;
+import com.order.model.Order;
+import com.order.model.Product;
+import com.order.model.StatusCountResponse;
+import com.order.repository.OrderRepository;
+import com.order.service.OrderService;
+import com.order.service.StatusResponseService;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@WebFluxTest
+
+public class OrderControllerTest {
+
+	@MockBean
+	OrderService orderService;
+	@MockBean
+	OrderRepository orderRepository;
+	@MockBean
+	StatusResponseService statusService;
+
+	private WebTestClient webTestClient;
+
+	@Autowired
+	public OrderControllerTest(WebTestClient webTestClient) {
+		this.webTestClient = webTestClient;
+	}
+	
+
+	@Test
+	@WithMockUser(roles = "CUSTOMER")
+	public void createOrderTest() {
+
+		Mockito.when(orderService.saveOrder(Mockito.any(Order.class))).thenReturn(Mono.just(createMockData()));
+
+		webTestClient.post().uri("/apis/CreateOrder").body(Mono.just(createMockData()), Order.class).exchange()
+				.expectStatus().isCreated().expectBody().jsonPath("$.status").isEqualTo("approved");
+	}
+
+	@Test
+	@WithMockUser(roles = "CUSTOMER")
+	public void findByIdTest() {
+
+		Mockito.when(orderService.findByIdBill("1223223543085092-594")).thenReturn(Mono.just(createMockData()));
+
+		webTestClient.get()
+				.uri(uriBuilder -> uriBuilder.path("/apis/invoiceData").queryParam("order_id", "1223223543085092-594")
+						.build())
+				.exchange().expectStatus().isOk().expectBody().jsonPath("$.status").isEqualTo("approved");
+
+	}
+
+	@Test
+	@WithMockUser(roles = "SYSTEM_ADMIN")
+	public void orderListDateRangeTest() {
+
+		Mockito.when(orderService.orderListDateRange("2021/05/07", "2021/05/08"))
+				.thenReturn(Flux.just(createMockData(), createMockData(), createMockData()));
+
+		webTestClient.get()
+				.uri(uriBuilder -> uriBuilder.path("/apis/dateRange").queryParam("startDate", "2021/05/07")
+						.queryParam("endDate", "2021/05/08").build())
+				.exchange().expectStatus().isOk().expectBodyList(Order.class);
+
+	}
+
+	@Test
+	@WithMockUser(roles = "SUPER_ADMIN")
+	public void OderListBasedonCityTest() {
+		Address address = new Address("364578697909", "3/138,Moongiltholuv", "cbe", "Tamil Nadu", 643203);
+		Product product = new Product("546587099080".toString(), "Good", "Laptop", 12322, address);
+		InvoiceData invoiceData = new InvoiceData("Laptop", 12322);
+		List<Product> productList = new ArrayList<Product>();
+		List<InvoiceData> invoiceDataList = new ArrayList<InvoiceData>();
+		productList.add(product);
+		invoiceDataList.add(invoiceData);
+		Order order = new Order("1223223543085092-594", "23435435435435435a", "2021/05/07", productList,
+				invoiceDataList,12322, "approved");
+		List<Order> list = new ArrayList<Order>();
+		list.add(order);
+
+		Flux<Order> employeeFlux = Flux.fromIterable(list);
+		Mockito.when(orderService.orderListByCity("cbe")).thenReturn(employeeFlux);
+
+		webTestClient.get().uri(uriBuilder -> uriBuilder.path("/apis/cityname").queryParam("city", "cbe").build())
+				.header(HttpHeaders.ACCEPT, "application/json").exchange().expectStatus().isOk()
+				.expectBodyList(Order.class);
+
+		Mockito.verify(orderService, times(1)).orderListByCity("cbe");
+	}
+
+	@Test
+	@WithMockUser(roles = "SUPER_ADMIN")
+	public void orderListByDateTest() {
+		Mockito.when(orderService.OrderListByDateAndStatus("2021/05/07", "approved"))
+				.thenReturn(Flux.just(createMockData(), createMockData(), createMockData()));
+
+		webTestClient.get()
+				.uri(uriBuilder -> uriBuilder.path("/apis/dateAndStaus").queryParam("date", "2021/05/07")
+						.queryParam("status", "approved").build())
+				.header(HttpHeaders.ACCEPT, "application/json").exchange().expectStatus().isOk()
+				.expectBodyList(Order.class);
+
+	}
+
+	@Test
+	@WithMockUser(roles = "SUPER_ADMIN")
+	public void orderListBasedDateTest() {
+		Mockito.when(orderService.orderListBasedDate("2021/05/07"))
+				.thenReturn(Flux.just(createMockData(), createMockData(), createMockData()));
+
+		webTestClient.get()
+				.uri(uriBuilder -> uriBuilder.path("/apis/dateByOrder").queryParam("date", "2021/05/07").build())
+				.header(HttpHeaders.ACCEPT, "application/json").exchange().expectStatus().isOk()
+				.expectBodyList(Order.class);
+
+	}
+
+	@Test
+	@WithMockUser(roles = "SUPER_ADMIN")
+	public void statusCountTest() {
+
+		Mockito.when(statusService.statusCount("2021/05/07")).thenReturn(Mono.just(new StatusCountResponse()));
+
+		webTestClient.get()
+				.uri(uriBuilder -> uriBuilder.path("/apis/StatusCount").queryParam("date", "2021/05/07").build())
+				.exchange().expectStatus().isOk().expectBody();
+	}
+
+	@Test
+	@WithMockUser(roles = "SUPER_ADMIN")
+	public void findAllOrderTest() {
+
+		Mockito.when(orderService.orderList())
+				.thenReturn(Flux.just(createMockData(), createMockData(), createMockData()));
+
+		webTestClient.get().uri("/apis/orders").exchange().expectStatus().isOk().expectBody().jsonPath("$.[2].status")
+				.isEqualTo("approved");
+
+	}
+
+	private Order createMockData() {
+		Address address = new Address(UUID.randomUUID().toString(), "3/138,Moongiltholuv", "cbe", "Tamil Nadu", 643203);
+		Product product = new Product(UUID.randomUUID().toString(), "Good", "Laptop", 12322, address);
+		InvoiceData invoiceData = new InvoiceData("Laptop", 12322);
+		List<Product> productList = new ArrayList<Product>();
+		List<InvoiceData> invoiceDataList = new ArrayList<InvoiceData>();
+		productList.add(product);
+		invoiceDataList.add(invoiceData);
+
+		return new Order("1223223543085092-594", "23435435435435435a", "2021/05/07", productList, invoiceDataList,12322,
+				"approved");
+	}
+
+	/*@Test
+	public void updateOrderTest() {
+		Address address = new Address(UUID.randomUUID().toString(), "3/138,Moongiltholuv", "cbe", "Tamil Nadu", 643203);
+		Product product = new Product(UUID.randomUUID().toString(), "Good", "Laptop", 12322, address);
+		InvoiceData invoiceData = new InvoiceData("Laptop", 12322);
+		List<Product> productList = new ArrayList<Product>();
+		List<InvoiceData> invoiceDataList = new ArrayList<InvoiceData>();
+		productList.add(product);
+		invoiceDataList.add(invoiceData);
+
+		Order order=new Order("1223223543085092-594", "23435435435435435a", "2021/05/07", productList, invoiceDataList,12322,
+				"approved");
+
+		Mockito.when(orderService.findById("1223223543085092-594")).thenReturn(Mono.just(order));
+		//Mockito.when(orderRepository.save(order).thenReturn(Mono.just(order)));
+
+		webTestClient.put()
+				.uri(uriBuilder -> uriBuilder.path("/apis/updateById").queryParam("order_id", "1223223543085092-594")
+						.queryParam("status", "approved").build())
+		.exchange().expectStatus().isOk();
+	}*/
+
+}

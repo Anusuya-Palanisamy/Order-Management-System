@@ -1,0 +1,202 @@
+package com.order.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.Before;
+import org.junit.jupiter.api.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.util.StringUtils;
+
+import com.order.model.Address;
+import com.order.model.InvoiceData;
+import com.order.model.Order;
+import com.order.model.Product;
+import com.order.repository.OrderRepository;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+
+@Import(OrderServiceImpl.class)
+@RunWith(SpringRunner.class)
+@SpringBootTest
+public class OrderServiceTest {
+
+	@MockBean
+	OrderRepository orderRepository;
+	
+	@Autowired 
+	 OrderService orderService;
+	
+
+	@Test
+	public void saveOrderTest() {
+	Order order = createOrder();
+	/*Mono<Order> orderMono = orderService.saveOrder(order);
+		StepVerifier.create(orderMono).expectNextMatches(p -> StringUtils.hasText(p.getCustomerId())).verifyComplete();*/
+	Mockito.when(orderRepository.save(Mockito.any(Order.class))).thenReturn(Mono.just(createOrder()));	
+		assertEquals("23435435435435435a", order.getCustomerId());
+	}
+
+	@Test
+	public void findBillTest() {
+		/*Mono<Order> orderMono = orderService.saveOrder(createOrder())
+				.flatMap(p -> orderService.findByIdBill(p.getOrder_id()));
+		StepVerifier.create(orderMono).expectNextMatches(p ->p.getOrder_id().equals("3435346546565677"))
+				.verifyComplete();*/
+		  Order order = createOrder();
+		  Mockito.when(orderRepository.findByOrderId("3435346546565677")).thenReturn(Mono.just(createOrder()));	
+		assertEquals("23435435435435435a", order.getCustomerId());
+		
+
+	}
+
+
+@Test
+	public void updateTest() {
+		Order order = createOrder();
+		/*Mono<Order> orderMono = orderService.saveOrder(order);
+		Order savedOrder = orderMono.block();
+		savedOrder.setStatus("pending");
+		Mono<Order> updateProduct = orderService.saveOrder(order);
+		StepVerifier.create(updateProduct).expectNextMatches(p -> p.getStatus().equals("pending")).verifyComplete();*/
+      Mockito.when(orderRepository.findById("3435346546565677")).thenReturn(Mono.just(createOrder()));
+		assertEquals("23435435435435435a", order.getCustomerId());
+
+	}
+
+	@Test
+	public void findByIdTest() {
+		Order order = createOrder();
+Mockito.when(orderRepository.findById("3435346546565677")).thenReturn(Mono.just(createOrder()));
+		assertEquals("23435435435435435a", order.getCustomerId());
+		/*Mono<Order> orderMono = orderService.saveOrder(createOrder())
+				.flatMap(p -> orderService.findById(p.getOrder_id()));
+
+		StepVerifier.create(orderMono).expectNextMatches(p -> p.getCustomerId().equals("23435435435435435a"))
+				.verifyComplete();*/
+		
+
+	}
+
+	@Test
+	public void orderListTest() {
+
+		/*Flux<Order> orderMono = orderRepository.saveAll(CreateOrderList()).flatMap(p -> orderService.orderList());
+		StepVerifier.create(orderMono).recordWith(ArrayList::new).thenConsumeWhile(x -> true)
+				.consumeRecordedWith(elements -> {
+					assertThat(elements.isEmpty()).isFalse();
+				}).verifyComplete();*/
+		Order order = createOrder();
+		Mockito.when(orderRepository.findAll())
+		.thenReturn(Flux.just(createOrder(), createOrder(), createOrder()));
+		assertEquals("23435435435435435a", order.getCustomerId());
+		
+	}
+
+	@Test
+	public void orderListByCityTest() {
+
+		/*Flux<Order> orderMono = orderRepository.saveAll(CreateOrderList())
+				.flatMap(p -> orderService.orderListByCity(p.getStatus()));
+		StepVerifier.create(orderMono).recordWith(ArrayList::new)
+				.thenConsumeWhile(p -> p.getStatus().equals("approved")).verifyComplete();*/
+	Order order = createOrder();
+		Flux<Order> employeeFlux = Flux.fromIterable(CreateOrderList());
+		Mockito.when(orderRepository.findOrderByProductAddressCity("cbe")).thenReturn(employeeFlux);
+		
+		assertEquals("23435435435435435a", order.getCustomerId());
+		
+	}
+
+	@Test
+	public void orderListDateRangeTest() {
+
+		/*Flux<Order> orderMono = orderRepository.saveAll(CreateOrderList())
+				.flatMap(p -> orderService.orderListDateRange(p.getDate(), p.getDate()));
+		StepVerifier.create(orderMono).recordWith(ArrayList::new)
+				.thenConsumeWhile(p -> p.getDate().equals("2021/05/07")).verifyComplete();*/
+		Order order = createOrder();
+		Mockito.when(orderRepository.findByDateBetweenAndAsc("2021/05/07", "2021/05/08"))
+		.thenReturn(Flux.just(createOrder(), createOrder(), createOrder()));
+		assertEquals("23435435435435435a", order.getCustomerId());
+	}
+
+	@Test
+	public void OrderListByDateAndStatusTest() {
+
+		/*Flux<Order> orderMono = orderRepository.saveAll(CreateOrderList())
+				.flatMap(p -> orderService.OrderListByDateAndStatus(p.getDate(), p.getStatus()));
+		StepVerifier.create(orderMono).recordWith(ArrayList::new)
+				.thenConsumeWhile(p -> p.getDate().equals("2021/05/07")).verifyComplete();*/
+		Order order = createOrder();
+		Mockito.when(orderRepository.findByDateAndStatus("2021/05/07", "approved"))
+		.thenReturn(Flux.just(createOrder(), createOrder(), createOrder()));
+		assertEquals("23435435435435435a", order.getCustomerId());
+	}
+
+	@Test
+	public void orderListBasedDateTest() {
+
+		/*Flux<Order> orderMono = orderRepository.saveAll(CreateOrderList())
+				.flatMap(p -> orderService.orderListBasedDate(p.getDate()));
+		StepVerifier.create(orderMono).recordWith(ArrayList::new)
+				.thenConsumeWhile(p -> p.getDate().equals("2021/05/07")).verifyComplete();*/
+		Order order = createOrder();
+		Mockito.when(orderRepository.findByDate("2021/05/07"))
+		.thenReturn(Flux.just(createOrder(), createOrder(), createOrder()));
+		assertEquals("23435435435435435a", order.getCustomerId());
+	}
+
+	private Order createOrder() {
+		Address address = new Address(UUID.randomUUID().toString(), "3/138,Moongiltholuv", "cbe", "Tamil Nadu", 643203);
+		Product product = new Product(UUID.randomUUID().toString(), "Good", "Laptop", 12322, address);
+		InvoiceData invoiceData = new InvoiceData("Laptop", 12322);
+		List<Product> productList = new ArrayList<Product>();
+		List<InvoiceData> invoiceDataList = new ArrayList<InvoiceData>();
+		productList.add(product);
+		invoiceDataList.add(invoiceData);
+
+		return new Order("3435346546565677", "23435435435435435a", "2021/05/07", productList, invoiceDataList,12322,
+				"approved");
+	}
+
+	private List<Order> CreateOrderList() {
+		Address address = new Address(UUID.randomUUID().toString(), "3/138,Moongiltholuv", "cbe", "Tamil Nadu", 643203);
+		Product product = new Product(UUID.randomUUID().toString(), "Good", "Laptop", 12322, address);
+		InvoiceData invoiceData = new InvoiceData("Laptop", 12322);
+		List<Product> productList = new ArrayList<Product>();
+		List<InvoiceData> invoiceDataList = new ArrayList<InvoiceData>();
+		productList.add(product);
+		invoiceDataList.add(invoiceData);
+		Order orderData = new Order(UUID.randomUUID().toString(), "23435435435435435a", "2021/05/07", productList,
+				invoiceDataList,12322, "approved");
+		Order orderData1 = new Order(UUID.randomUUID().toString(), "23435435435435435a", "2021/05/07", productList,
+				invoiceDataList,12322, "approved");
+		List<Order> orders = new ArrayList<Order>();
+		orders.add(orderData);
+		orders.add(orderData1);
+		return orders;
+	}
+
+}

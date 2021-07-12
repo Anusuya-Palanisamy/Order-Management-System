@@ -1,0 +1,23 @@
+package com.order.App;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.web.reactive.config.EnableWebFlux;
+
+import com.order.handler.OrderController;
+import com.order.service.OrderService;
+
+@ComponentScan(basePackageClasses = {OrderController.class,OrderService.class})
+@PropertySource("classpath:application.properties")
+@SpringBootApplication
+public class OrderServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(OrderServiceApplication.class, args);
+	}
+
+}
+
